@@ -15,7 +15,6 @@
  */
 package eu.europa.ec.eudi.pidissuer.adapter.out.msomdoc
 
-import COSE.OneKey
 import com.nimbusds.jose.jwk.ECKey
 import eu.europa.ec.eudi.pidissuer.adapter.out.IssuerSigningKey
 import eu.europa.ec.eudi.pidissuer.adapter.out.cryptoProvider
@@ -29,6 +28,7 @@ import id.walt.mdoc.mso.ValidityInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.toKotlinInstant
+import org.cose.java.OneKey
 import java.time.Clock
 import kotlin.io.encoding.Base64
 import kotlin.time.Duration

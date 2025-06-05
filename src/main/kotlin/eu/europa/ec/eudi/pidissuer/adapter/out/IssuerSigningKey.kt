@@ -15,7 +15,6 @@
  */
 package eu.europa.ec.eudi.pidissuer.adapter.out
 
-import COSE.AlgorithmID
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.ECKey
@@ -23,6 +22,7 @@ import com.nimbusds.jose.util.X509CertChainUtils
 import com.nimbusds.jose.util.X509CertUtils
 import id.walt.mdoc.COSECryptoProviderKeyInfo
 import id.walt.mdoc.SimpleCOSECryptoProvider
+import org.cose.java.AlgorithmID
 import java.security.cert.X509Certificate
 
 @JvmInline

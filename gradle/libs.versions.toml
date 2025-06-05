@@ -16,7 +16,9 @@ bootstrap = "5.3.3"
 multiformat = "1.1.0"
 resultMonad = "1.4.0"
 keycloak = "26.0.4"
-waltid = "0.11.0"
+waltid = "0.14.0"
+coseJava = "1.1.1-WALT-SNAPSHOT"
+kotlinxDatetime = "0.6.2"
 uri-kmp = "0.0.19"
 zxing = "3.5.3"
 tink = "1.17.0"
@@ -34,6 +36,8 @@ eudi-sdjwt = { module = "eu.europa.ec.eudi:eudi-lib-jvm-sdjwt-kt", version.ref =
 bouncy-castle = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
 bootstrap = { module = "org.webjars:bootstrap", version.ref = "bootstrap" }
 tink = { module = "com.google.crypto.tink:tink", version.ref = "tink" }
+cose-java = { module = "org.cose:cose-java", version.ref = "coseJava" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 
 multiformat = { module = "org.erwinkok.multiformat:multiformat", version.ref = "multiformat" }
 result-monad = { module = "org.erwinkok.result:result-monad", version.ref = "resultMonad" }

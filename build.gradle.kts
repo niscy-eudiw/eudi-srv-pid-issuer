@@ -16,11 +16,8 @@ plugins {
 
 repositories {
     mavenCentral()
-    maven {
-        url = uri("https://maven.waltid.dev/releases")
-        mavenContent {
-        }
-    }
+    maven("https://maven.waltid.dev/releases")
+    maven("https://maven.waltid.dev/snapshots")
 }
 
 dependencies {
@@ -74,10 +71,10 @@ dependencies {
     implementation(libs.waltid.mdoc.credentials) {
         because("To sign CBOR credentials")
     }
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2") {
+    implementation(libs.kotlinx.datetime) {
         because("required by walt.id")
     }
-    implementation("com.augustcellars.cose:cose-java:1.1.0") {
+    implementation(libs.cose.java) {
         because("required by walt.id")
     }
     implementation(libs.uri.kmp) {
