@@ -10,7 +10,7 @@ ktlint = "0.50.0"
 nimbusJoseJwt = "10.0.2"
 nimbusOAuth2 = "11.23.1"
 eudiSdJwt = "0.13.1"
-bouncyCastle = "1.80"
+bouncyCastle = "2.73.7"
 dependencyCheck = "12.1.1"
 bootstrap = "5.3.3"
 multiformat = "1.1.0"
@@ -33,7 +33,7 @@ arrow-fx-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines", version.ref 
 nimbus-jose-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbusJoseJwt" }
 nimbus-oauth2 = { module = "com.nimbusds:oauth2-oidc-sdk", version.ref = "nimbusOAuth2" }
 eudi-sdjwt = { module = "eu.europa.ec.eudi:eudi-lib-jvm-sdjwt-kt", version.ref = "eudiSdJwt" }
-bouncy-castle = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
+bouncy-castle = { module = "org.bouncycastle:bcpkix-lts8on", version.ref = "bouncyCastle" }
 bootstrap = { module = "org.webjars:bootstrap", version.ref = "bootstrap" }
 tink = { module = "com.google.crypto.tink:tink", version.ref = "tink" }
 cose-java = { module = "org.cose:cose-java", version.ref = "coseJava" }

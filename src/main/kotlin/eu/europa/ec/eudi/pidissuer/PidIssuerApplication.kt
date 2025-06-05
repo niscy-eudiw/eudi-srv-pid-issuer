@@ -21,6 +21,7 @@ import arrow.core.some
 import arrow.core.toNonEmptySetOrNull
 import com.nimbusds.jose.EncryptionMethod
 import com.nimbusds.jose.JWEAlgorithm
+import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton
 import com.nimbusds.jose.jwk.*
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
@@ -113,6 +114,7 @@ import reactor.netty.http.client.HttpClient
 import java.net.URI
 import java.net.URL
 import java.security.KeyStore
+import java.security.Security
 import java.security.cert.X509Certificate
 import java.time.Clock
 import java.time.Duration
@@ -985,6 +987,7 @@ fun BeanDefinitionDsl.initializer(): ApplicationContextInitializer<GenericApplic
 class PidIssuerApplication
 
 fun main(args: Array<String>) {
+    Security.addProvider(BouncyCastleProviderSingleton.getInstance())
     runApplication<PidIssuerApplication>(*args) {
         addInitializers(beans(Clock.systemDefaultZone()).initializer())
     }
