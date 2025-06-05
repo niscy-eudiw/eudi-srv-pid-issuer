@@ -23,17 +23,21 @@ import eu.europa.ec.eudi.pidissuer.adapter.out.mdl.DrivingPrivilege.Restriction.
 import eu.europa.ec.eudi.pidissuer.adapter.out.msomdoc.MsoMdocSigner
 import eu.europa.ec.eudi.pidissuer.domain.ClaimDefinition
 import eu.europa.ec.eudi.pidissuer.port.input.IssueCredentialError.Unexpected
+import eu.europa.ec.eudi.pidissuer.port.out.status.GenerateStatusListToken
 import id.walt.mdoc.dataelement.DataElement
 import id.walt.mdoc.dataelement.toDataElement
 import id.walt.mdoc.doc.MDocBuilder
 import kotlinx.datetime.toKotlinLocalDate
 import java.time.Clock
+import java.time.ZonedDateTime
 import kotlin.time.Duration
+import kotlin.time.toJavaDuration
 
 class DefaultEncodeMobileDrivingLicenceInCbor(
-    clock: Clock,
+    private val clock: Clock,
     issuerSigningKey: IssuerSigningKey,
-    validityDuration: Duration,
+    private val validityDuration: Duration,
+    private val generateStatusListToken: GenerateStatusListToken?,
 ) : EncodeMobileDrivingLicenceInCbor {
 
     private val signer = MsoMdocSigner<MobileDrivingLicence>(
@@ -46,7 +50,13 @@ class DefaultEncodeMobileDrivingLicenceInCbor(
     }
 
     override suspend fun invoke(licence: MobileDrivingLicence, holderKey: ECKey): Either<Unexpected, String> =
-        Either.catch { signer.sign(licence, holderKey) }.mapLeft { Unexpected("Failed to encode mDL", it) }
+        Either.catch {
+            val statusListToken = generateStatusListToken?.let {
+                val expiration = ZonedDateTime.ofInstant(clock.instant() + validityDuration.toJavaDuration(), clock.zone)
+                it(MobileDrivingLicenceV1.docType, expiration).getOrThrow()
+            }
+            signer.sign(licence, holderKey, statusListToken)
+        }.mapLeft { Unexpected("Failed to encode mDL", it) }
 }
 
 private fun MDocBuilder.addItemsToSign(licence: MobileDrivingLicence) {

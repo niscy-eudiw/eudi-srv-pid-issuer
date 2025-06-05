@@ -19,18 +19,21 @@ import com.nimbusds.jose.jwk.ECKey
 import eu.europa.ec.eudi.pidissuer.adapter.out.IssuerSigningKey
 import eu.europa.ec.eudi.pidissuer.adapter.out.msomdoc.MsoMdocSigner
 import eu.europa.ec.eudi.pidissuer.domain.ClaimDefinition
+import eu.europa.ec.eudi.pidissuer.port.out.status.GenerateStatusListToken
 import id.walt.mdoc.dataelement.DataElement
 import id.walt.mdoc.dataelement.toDataElement
 import id.walt.mdoc.doc.MDocBuilder
 import kotlinx.datetime.toKotlinLocalDate
 import java.time.Clock
+import java.time.ZonedDateTime
 import kotlin.time.Duration
+import kotlin.time.toJavaDuration
 
 internal class DefaultEncodePidInCbor(
-    clock: Clock,
-    issuerSigningKey:
-        IssuerSigningKey,
-    validityDuration: Duration,
+    private val clock: Clock,
+    issuerSigningKey: IssuerSigningKey,
+    private val validityDuration: Duration,
+    private val generateStatusListToken: GenerateStatusListToken?,
 ) : EncodePidInCbor {
 
     private val signer = MsoMdocSigner<Pair<Pid, PidMetaData>>(
@@ -47,7 +50,13 @@ internal class DefaultEncodePidInCbor(
         pid: Pid,
         pidMetaData: PidMetaData,
         holderKey: ECKey,
-    ): String = signer.sign(pid to pidMetaData, holderKey)
+    ): String {
+        val statusListToken = generateStatusListToken?.let {
+            val expiration = ZonedDateTime.ofInstant(clock.instant() + validityDuration.toJavaDuration(), clock.zone)
+            it(PidMsoMdocV1.docType, expiration).getOrThrow()
+        }
+        return signer.sign(pid to pidMetaData, holderKey, statusListToken)
+    }
 }
 
 private fun MDocBuilder.addItemsToSign(pid: Pid) {

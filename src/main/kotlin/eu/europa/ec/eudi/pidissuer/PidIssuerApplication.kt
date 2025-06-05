@@ -319,7 +319,12 @@ fun beans(clock: Clock) = beans {
         log.info("Using internal encoder to encode PID in CBOR")
         val issuerSigningKey = ref<IssuerSigningKey>()
         val duration = env.duration("issuer.pid.mso_mdoc.encoder.duration")?.toKotlinDuration() ?: 30.days
-        DefaultEncodePidInCbor(clock, issuerSigningKey, duration)
+        DefaultEncodePidInCbor(
+            clock,
+            issuerSigningKey,
+            duration,
+            provider<GenerateStatusListToken>().ifAvailable,
+        )
     }
 
     bean {
@@ -329,7 +334,12 @@ fun beans(clock: Clock) = beans {
         log.info("Using internal encoder to encode mDL in CBOR")
         val issuerSigningKey = ref<IssuerSigningKey>()
         val duration = env.duration("issuer.mdl.mso_mdoc.encoder.duration")?.toKotlinDuration() ?: 5.days
-        DefaultEncodeMobileDrivingLicenceInCbor(clock, issuerSigningKey, duration)
+        DefaultEncodeMobileDrivingLicenceInCbor(
+            clock,
+            issuerSigningKey,
+            duration,
+            provider<GenerateStatusListToken>().ifAvailable,
+        )
     }
 
     bean(::DefaultGenerateQrCode)

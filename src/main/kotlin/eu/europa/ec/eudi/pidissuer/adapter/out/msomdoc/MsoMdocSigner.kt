@@ -19,11 +19,14 @@ import com.nimbusds.jose.jwk.ECKey
 import eu.europa.ec.eudi.pidissuer.adapter.out.IssuerSigningKey
 import eu.europa.ec.eudi.pidissuer.adapter.out.cryptoProvider
 import eu.europa.ec.eudi.pidissuer.domain.MsoDocType
+import eu.europa.ec.eudi.pidissuer.domain.StatusListToken
 import id.walt.mdoc.SimpleCOSECryptoProvider
 import id.walt.mdoc.dataelement.DataElement
 import id.walt.mdoc.dataelement.MapElement
 import id.walt.mdoc.doc.MDocBuilder
 import id.walt.mdoc.mso.DeviceKeyInfo
+import id.walt.mdoc.mso.Status
+import id.walt.mdoc.mso.StatusListInfo
 import id.walt.mdoc.mso.ValidityInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -49,13 +52,19 @@ internal class MsoMdocSigner<in Credential>(
         issuerSigningKey.cryptoProvider()
     }
 
-    suspend fun sign(credential: Credential, deviceKey: ECKey): String =
+    suspend fun sign(credential: Credential, deviceKey: ECKey, statusListToken: StatusListToken?): String =
         withContext(Dispatchers.IO) {
             val validityInfo = validityInfo()
             val deviceKeyInfo = deviceKeyInfo(deviceKey)
             val mdoc = MDocBuilder(docType)
                 .apply { usage(credential) }
-                .sign(validityInfo, deviceKeyInfo, issuerCryptoProvider, issuerSigningKey.key.keyID)
+                .sign(
+                    validityInfo = validityInfo,
+                    deviceKeyInfo = deviceKeyInfo,
+                    cryptoProvider = issuerCryptoProvider,
+                    keyID = issuerSigningKey.key.keyID,
+                    status = statusListToken?.toStatus(),
+                )
             Base64.UrlSafe.encode(mdoc.issuerSigned.toMapElement().toCBOR())
         }
 
@@ -67,7 +76,16 @@ internal class MsoMdocSigner<in Credential>(
 }
 
 private fun deviceKeyInfo(deviceKey: ECKey): DeviceKeyInfo {
-    val key = OneKey(deviceKey.toECPublicKey(), null)
+    val publicKey = deviceKey.toECPublicKey()
+    val key = OneKey(publicKey, null)
     val deviceKeyDataElement: MapElement = DataElement.fromCBOR(key.AsCBOR().EncodeToBytes())
     return DeviceKeyInfo(deviceKeyDataElement, null, null)
 }
+
+private fun StatusListToken.toStatus(): Status =
+    Status(
+        statusList = StatusListInfo(
+            index = index,
+            uri = statusList.toString(),
+        ),
+    )
