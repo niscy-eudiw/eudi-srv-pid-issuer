@@ -490,6 +490,26 @@ fun beans(clock: Clock) = beans {
                 if (enableSdJwtVcPid) {
                     val expiresIn = env.duration("issuer.pid.sd_jwt_vc.duration") ?: Duration.ofDays(30L)
                     val notUseBefore = env.duration("issuer.pid.sd_jwt_vc.notUseBefore")
+                    val keyAttestationRequired = env.getProperty<Boolean>("issuer.pid.sd_jwt_vc.key_attestations.required")
+                    val keyStorageConstraints = env.getProperty<List<String>>(
+                        "issuer.pid.sd_jwt_vc.key_attestations.constraints.key_storage",
+                    )
+                    val userAuthenticationConstraints = env.getProperty<List<String>>(
+                        "issuer.pid.sd_jwt_vc.key_attestations.constraints.user_authentication",
+                    )
+
+                    val configuredKeyAttestationRequirement =
+                        if (keyAttestationRequired != null && !keyAttestationRequired)
+                            KeyAttestation.NotRequired
+                        else KeyAttestation.Required(
+                            keyStorage = keyStorageConstraints?.map { AttackPotentialResistance(it) }?.toNonEmptySetOrNull(),
+                            useAuthentication = userAuthenticationConstraints?.map {
+                                AttackPotentialResistance(
+                                    it,
+                                )
+                            }?.toNonEmptySetOrNull(),
+                        )
+
                     val digestsHashAlgorithm = env.getProperty<HashAlgorithm>(
                         "issuer.pid.sd_jwt_vc.digests.hashAlgorithm",
                     ) ?: HashAlgorithm.SHA_256
@@ -514,6 +534,7 @@ fun beans(clock: Clock) = beans {
                         storeIssuedCredentials = ref(),
                         validateProofs = ref(),
                         generateStatusListToken = provider<GenerateStatusListToken>().ifAvailable,
+                        configuredKeyAttestationRequirement = configuredKeyAttestationRequirement,
                     )
 
                     val deferred = env.getProperty<Boolean>("issuer.pid.sd_jwt_vc.deferred") ?: false

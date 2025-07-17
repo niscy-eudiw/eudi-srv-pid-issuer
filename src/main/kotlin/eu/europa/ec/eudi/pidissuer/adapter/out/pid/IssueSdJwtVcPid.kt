@@ -183,7 +183,7 @@ internal val SdJwtVcPidVct: SdJwtVcType = SdJwtVcType(pidDocType(1))
 
 internal val SdJwtVcPidCredentialConfigurationId: CredentialConfigurationId = CredentialConfigurationId(PidSdJwtVcScope.value)
 
-fun pidSdJwtVcV1(signingAlgorithm: JWSAlgorithm): SdJwtVcCredentialConfiguration =
+fun pidSdJwtVcV1(signingAlgorithm: JWSAlgorithm, configuredKeyAttestationRequirement: KeyAttestation): SdJwtVcCredentialConfiguration =
     SdJwtVcCredentialConfiguration(
         id = SdJwtVcPidCredentialConfigurationId,
         type = SdJwtVcPidVct,
@@ -203,7 +203,7 @@ fun pidSdJwtVcV1(signingAlgorithm: JWSAlgorithm): SdJwtVcCredentialConfiguration
                         JWSAlgorithm.RS256,
                         JWSAlgorithm.ES256,
                     ),
-                    KeyAttestation.NotRequired,
+                    configuredKeyAttestationRequirement,
                 ),
             ),
         ),
@@ -229,9 +229,12 @@ internal class IssueSdJwtVcPid(
     private val generateNotificationId: GenerateNotificationId,
     private val storeIssuedCredentials: StoreIssuedCredentials,
     private val generateStatusListToken: GenerateStatusListToken?,
+    configuredKeyAttestationRequirement: KeyAttestation,
 ) : IssueSpecificCredential {
 
-    override val supportedCredential: SdJwtVcCredentialConfiguration = pidSdJwtVcV1(issuerSigningKey.signingAlgorithm)
+    override val supportedCredential: SdJwtVcCredentialConfiguration =
+        pidSdJwtVcV1(issuerSigningKey.signingAlgorithm, configuredKeyAttestationRequirement)
+
     override val publicKey: JWK
         get() = issuerSigningKey.key.toPublicJWK()
 
