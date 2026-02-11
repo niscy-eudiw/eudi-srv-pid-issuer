@@ -61,7 +61,7 @@ object SdJwtVcClaims {
     )
     val GivenName: ClaimDefinition = ClaimDefinition(
         path = ClaimPath.claim("given_name"),
-        mandatory = true,
+        mandatory = false,
         display = mapOf(
             Locale.ENGLISH to "Given Name(s)",
         ),
@@ -122,13 +122,6 @@ object SdJwtVcClaims {
             Locale.ENGLISH to "Level of learning experience",
         ),
     )
-    val FormOfParticipation: ClaimDefinition = ClaimDefinition(
-        path = ClaimPath.claim("form_of_participation"),
-        mandatory = true,
-        display = mapOf(
-            Locale.ENGLISH to "Form of participation",
-        ),
-    )
     val TypesOfQualityAssurance: ClaimDefinition = ClaimDefinition(
         path = ClaimPath.claim("types_of_quality_assurance"),
         mandatory = true,
@@ -141,13 +134,6 @@ object SdJwtVcClaims {
         mandatory = false,
         display = mapOf(
             Locale.ENGLISH to "Prerequisites to enroll",
-        ),
-    )
-    val EvaluatorVerification: ClaimDefinition = ClaimDefinition(
-        path = ClaimPath.claim("evaluator_verification"),
-        mandatory = false,
-        display = mapOf(
-            Locale.ENGLISH to "Evaluator verification",
         ),
     )
     val IntegrationStackabilityOptions: ClaimDefinition = ClaimDefinition(
@@ -173,10 +159,8 @@ object SdJwtVcClaims {
         LearnerIdentification,
         ExpectedStudyTime,
         LevelOfLearningExperience,
-        FormOfParticipation,
         TypesOfQualityAssurance,
         PrerequisitesToEnroll,
-        EvaluatorVerification,
         IntegrationStackabilityOptions,
     )
 }

@@ -90,9 +90,7 @@ private class EncodeLearningCredentialInSdJwtVcCompact(
                 with(issuer) {
                     claim(SdJwtVcClaims.IssuingAuthority.name, name.value)
                     claim(SdJwtVcClaims.IssuingCountry.name, country.code)
-                    if (null != uri) {
-                        claim(RFC7519.ISSUER, uri.externalForm)
-                    }
+                    claim(RFC7519.ISSUER, uri.externalForm)
                 }
                 claim(
                     SdJwtVcClaims.DateOfIssuance.name,
@@ -105,7 +103,9 @@ private class EncodeLearningCredentialInSdJwtVcCompact(
                     )
                 }
                 sdClaim(SdJwtVcClaims.FamilyName.name, familyName.value)
-                sdClaim(SdJwtVcClaims.GivenName.name, givenName.value)
+                if (null != givenName) {
+                    sdClaim(SdJwtVcClaims.GivenName.name, givenName.value)
+                }
                 claim(SdJwtVcClaims.AchievementTitle.name, achievementTitle.value)
                 if (null != achievementDescription) {
                     claim(SdJwtVcClaims.AchievementDescription.name, achievementDescription.value)
@@ -118,22 +118,18 @@ private class EncodeLearningCredentialInSdJwtVcCompact(
                 if (null != assessmentGrade) {
                     sdClaim(SdJwtVcClaims.AssessmentGrade.name, assessmentGrade.value)
                 }
-                claim(SdJwtVcClaims.LanguageOfClasses.name, languageOfClasses.value)
+                arrClaim(SdJwtVcClaims.LanguageOfClasses.name) {
+                    languagesOfClasses.forEach { languageOfClasses -> claim(languageOfClasses.value) }
+                }
                 sdClaim(SdJwtVcClaims.LearnerIdentification.name, learnerIdentification.value)
                 sdClaim(SdJwtVcClaims.ExpectedStudyTime.name, expectedStudyTime.value)
                 sdClaim(SdJwtVcClaims.LevelOfLearningExperience.name, levelOfLearningExperience.value)
-                sdClaim(SdJwtVcClaims.FormOfParticipation.name, formOfParticipation.value)
                 sdArrClaim(SdJwtVcClaims.TypesOfQualityAssurance.name) {
                     typesOfQualityAssurance.forEach { typeOfQualityAssurance -> claim(typeOfQualityAssurance.value) }
                 }
                 if (null != prerequisitesToEnroll) {
                     sdArrClaim(SdJwtVcClaims.PrerequisitesToEnroll.name) {
                         prerequisitesToEnroll.forEach { prerequisiteToEnroll -> claim(prerequisiteToEnroll.value) }
-                    }
-                }
-                if (null != evaluatorVerification) {
-                    sdArrClaim(SdJwtVcClaims.EvaluatorVerification.name) {
-                        evaluatorVerification.forEach { evaluatorVerification -> claim(evaluatorVerification.value) }
                     }
                 }
                 if (null != integrationStackabilityOptions) {

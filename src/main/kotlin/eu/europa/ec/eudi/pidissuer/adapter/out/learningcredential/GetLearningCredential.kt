@@ -71,14 +71,12 @@ private class GetMockLearningCredential(
                     LearningOutcome("Evaluate the suitability of different machine learning models for a given problem"),
                 ),
             assessmentGrade = AssessmentGrade("Excellent"),
-            languageOfClasses = Language.entries.shuffled(random).first(),
+            languagesOfClasses = nonEmptyListOf(Language.entries.shuffled(random).first()),
             learnerIdentification = LearnerIdentification("0123456"),
             expectedStudyTime = ExpectedStudyTime("12 months"),
             levelOfLearningExperience = LevelOfLearningExperience.entries.shuffled(random).first(),
-            formOfParticipation = FormOfParticipation("On-line"),
             typesOfQualityAssurance = nonEmptyListOf(TypesOfQualityAssurance("Institutional Evaluation")),
             prerequisitesToEnroll = nonEmptyListOf(PrerequisiteToEnroll("Familiarity with Python")),
-            evaluatorVerification = nonEmptyListOf(EvaluatorVerification("Document checks (passport)")),
             integrationStackabilityOptions = IntegrationStackabilityOptions.entries.shuffled(random).first(),
         )
     }

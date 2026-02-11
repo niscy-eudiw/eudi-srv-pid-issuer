@@ -32,7 +32,7 @@ value class NonBlankString(val value: String) {
 data class Issuer(
     val name: Name,
     val country: IsoAlpha2CountryCode,
-    val uri: HttpsUrl? = null,
+    val uri: HttpsUrl,
 ) {
     typealias Name = NonBlankString
 }
@@ -64,10 +64,8 @@ enum class LevelOfLearningExperience {
     Level8,
 }
 
-typealias FormOfParticipation = NonBlankString
 typealias TypesOfQualityAssurance = NonBlankString
 typealias PrerequisiteToEnroll = NonBlankString
-typealias EvaluatorVerification = NonBlankString
 
 enum class IntegrationStackabilityOptions {
     Yes,
@@ -79,19 +77,17 @@ data class LearningCredential(
     val dateOfIssuance: Instant,
     val dateOfExpiry: Instant? = null,
     val familyName: FamilyName,
-    val givenName: GivenName,
+    val givenName: GivenName? = null,
     val achievementTitle: AchievementTitle,
     val achievementDescription: AchievementDescription? = null,
     val learningOutcomes: NonEmptyList<LearningOutcome>? = null,
     val assessmentGrade: AssessmentGrade? = null,
-    val languageOfClasses: Language,
+    val languagesOfClasses: NonEmptyList<Language>,
     val learnerIdentification: LearnerIdentification,
     val expectedStudyTime: ExpectedStudyTime,
     val levelOfLearningExperience: LevelOfLearningExperience,
-    val formOfParticipation: FormOfParticipation,
     val typesOfQualityAssurance: NonEmptyList<TypesOfQualityAssurance>,
     val prerequisitesToEnroll: NonEmptyList<PrerequisiteToEnroll>? = null,
-    val evaluatorVerification: NonEmptyList<EvaluatorVerification>? = null,
     val integrationStackabilityOptions: IntegrationStackabilityOptions? = null,
 ) {
     companion object
