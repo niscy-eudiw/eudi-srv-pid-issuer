@@ -315,9 +315,9 @@ fun beans(clock: Clock) = BeanRegistrarDsl {
             val parameters = CredentialRequestEncryptionSupportedParameters(
                 encryptionKeys = JWKSet(key),
                 methodsSupported = encryptionMethods,
-                zipAlgorithmsSupported = env.readNonEmptySet(
+                zipAlgorithmsSupported = env.readNullableNonEmptySet(
                     "issuer.credentialRequestEncryption.zipAlgorithmsSupported",
-                ) { CompressionAlgorithm(it) },
+                ) { algorithm -> algorithm.takeIf { it.isNotBlank() }?.let { CompressionAlgorithm(it) } },
             )
             val isRequired = env.getProperty<Boolean>("issuer.credentialRequestEncryption.required") ?: false
             if (!isRequired) {
@@ -1146,9 +1146,9 @@ private fun Environment.credentialResponseEncryption(): CredentialResponseEncryp
                 "issuer.credentialResponseEncryption.encryptionMethods",
                 EncryptionMethod::parse,
             ),
-            zipAlgorithmsSupported = readNonEmptySet(
+            zipAlgorithmsSupported = readNullableNonEmptySet(
                 "issuer.credentialResponseEncryption.zipAlgorithmsSupported",
-            ) { CompressionAlgorithm(it) },
+            ) { algorithm -> algorithm.takeIf { it.isNotBlank() }?.let { CompressionAlgorithm(it) } },
         )
         val isRequired = getProperty<Boolean>("issuer.credentialResponseEncryption.required") ?: false
         if (!isRequired) {
@@ -1179,6 +1179,12 @@ private fun <T> Environment.readNonEmptySet(key: String, f: (String) -> T?): Non
         .mapNotNull(f)
         .toNonEmptySetOrNull()
     return checkNotNull(nonEmptySet) { "Missing or incorrect values values for key `$key`" }
+}
+
+private fun <T> Environment.readNullableNonEmptySet(key: String, f: (String) -> T?): NonEmptySet<T>? {
+    return getProperty<MutableSet<String>>(key)
+        ?.mapNotNull(f)
+        ?.toNonEmptySetOrNull()
 }
 
 private fun Environment.duration(key: String): Duration? =
