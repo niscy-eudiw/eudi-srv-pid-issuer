@@ -106,7 +106,7 @@ fun IssueMsoMdocPid(
         storeIssuedCredential,
         getAttestationAttributes,
         allocateStatus,
-        encodeAttestationAttributesInMdoc(configuration.docType, issuerSigningKey, { pidAttributes(it) }),
+        encodeAttestationAttributesInMdoc(configuration.docType, issuerSigningKey) { pidAttributes(it) },
     )
 }
 
@@ -137,7 +137,6 @@ private fun MDocBuilder.addItemsToSign(pid: Pid) {
     pid.residentCity?.let { addItemToSign(MsoMdocPidClaims.ResidenceCity, it.value.toDataElement()) }
     pid.residentPostalCode?.let { addItemToSign(MsoMdocPidClaims.ResidencePostalCode, it.value.toDataElement()) }
     pid.residentStreet?.let { addItemToSign(MsoMdocPidClaims.ResidenceStreet, it.value.toDataElement()) }
-    pid.residentHouseNumber?.let { addItemToSign(MsoMdocPidClaims.ResidenceHouseNumber, it.toDataElement()) }
     pid.portrait?.let {
         val value =
             when (it) {
@@ -160,7 +159,6 @@ private fun MDocBuilder.addItemsToSign(pid: Pid) {
 }
 
 private fun MDocBuilder.addItemsToSign(metaData: PidMetaData) {
-    addItemToSign(MsoMdocPidClaims.ExpiryDate, metaData.expiryDate.toDataElement())
     when (val issuingAuthority = metaData.issuingAuthority) {
         is IssuingAuthority.MemberState -> {
             addItemToSign(MsoMdocPidClaims.IssuingAuthority, issuingAuthority.code.value.toDataElement())
@@ -171,6 +169,7 @@ private fun MDocBuilder.addItemsToSign(metaData: PidMetaData) {
         }
     }
     addItemToSign(MsoMdocPidClaims.IssuingCountry, metaData.issuingCountry.value.toDataElement())
+    metaData.expiryDate?.let { addItemToSign(MsoMdocPidClaims.ExpiryDate, it.toDataElement()) }
     metaData.documentNumber?.let { addItemToSign(MsoMdocPidClaims.DocumentNumber, it.value.toDataElement()) }
     metaData.issuingJurisdiction?.let { addItemToSign(MsoMdocPidClaims.IssuingJurisdiction, it.toDataElement()) }
     metaData.issuanceDate?.let { addItemToSign(MsoMdocPidClaims.IssuanceDate, it.toDataElement()) }

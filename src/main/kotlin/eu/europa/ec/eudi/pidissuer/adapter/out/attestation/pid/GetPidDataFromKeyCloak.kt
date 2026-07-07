@@ -292,7 +292,6 @@ class GetPidDataFromKeyCloak(
                 residentCity = userInfo.address?.locality?.let { City(it) },
                 residentPostalCode = userInfo.address?.postalCode?.let { PostalCode(it) },
                 residentStreet = userInfo.address?.streetAddress?.let { Street(it) },
-                residentHouseNumber = userInfo.address?.houseNumber,
                 portrait = PortraitImage.JPEG(portrait),
                 familyNameBirth = userInfo.birthFamilyName?.let { FamilyName(it) },
                 givenNameBirth = userInfo.birthGivenName?.let { GivenName(it) },

@@ -19,6 +19,7 @@ import arrow.core.NonEmptyList
 import com.eygraber.uri.Uri
 import kotlinx.datetime.LocalDate
 import java.util.regex.Pattern
+import kotlin.require
 
 @JvmInline
 value class FamilyName(
@@ -149,7 +150,6 @@ data class Pid(
     val residentCity: City? = null,
     val residentPostalCode: PostalCode? = null,
     val residentStreet: Street? = null,
-    val residentHouseNumber: String? = null,
     val portrait: PortraitImage? = null,
     val familyNameBirth: FamilyName? = null,
     val givenNameBirth: GivenName? = null,
@@ -229,14 +229,13 @@ typealias AttestationLegalCategory = String
  * @param issuingJurisdiction Country subdivision code of the jurisdiction that issued the PID, as defined
  * in ISO 3166-2:2020, Clause 8. The first part of the code SHALL be the same as the value for issuing_country.
  * @param issuanceDate Date (and possibly time) when the PID was issued.
- * @param trustAnchor This attribute indicates at least the URL at which a machine-readable version of the trust
  * anchor to be used for verifying the PID can be found or looked up
  * @param attestationLegalCategory This attribute indicates that a PID has indeed been issued as a PID.
  */
 data class PidMetaData(
-    val expiryDate: LocalDate,
     val issuingAuthority: IssuingAuthority,
     val issuingCountry: IsoCountry,
+    val expiryDate: LocalDate? = null,
     val documentNumber: DocumentNumber? = null,
     val issuingJurisdiction: IsoCountrySubdivision? = null,
     val issuanceDate: LocalDate? = null,
@@ -244,8 +243,8 @@ data class PidMetaData(
     val attestationLegalCategory: AttestationLegalCategory? = null,
 ) {
     init {
-        issuanceDate?.let {
-            require(it < expiryDate) { "Issuance date should be before expiry date" }
+        if (null != issuanceDate && null != expiryDate) {
+            require(issuanceDate < expiryDate) { "Issuance date should be before expiry date" }
         }
 
         if (issuingAuthority is IssuingAuthority.MemberState) {

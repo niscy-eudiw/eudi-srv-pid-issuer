@@ -265,7 +265,7 @@ fun SdJwtObjectBuilder.pid(attributes: PidAttributes) {
 
 private fun Pid.oidcAddressClaim(): OidcAddressClaim? =
     if (
-        residentHouseNumber != null || residentStreet != null || residentPostalCode != null ||
+        residentStreet != null || residentPostalCode != null ||
         residentCity != null || residentState != null || residentCountry != null ||
         residentAddress != null
     ) {
@@ -276,7 +276,6 @@ private fun Pid.oidcAddressClaim(): OidcAddressClaim? =
             locality = residentCity?.value,
             postalCode = residentPostalCode?.value,
             streetAddress = residentStreet?.value,
-            houseNumber = residentHouseNumber,
         )
     } else {
         null
