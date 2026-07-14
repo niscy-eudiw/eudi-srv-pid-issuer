@@ -15,11 +15,6 @@ plugins {
 
 repositories {
     mavenCentral()
-    maven {
-        url = uri("https://maven.waltid.dev/releases")
-        mavenContent {
-        }
-    }
 }
 
 dependencies {
@@ -74,15 +69,7 @@ dependencies {
     implementation(libs.nimbus.oauth2) {
         because("To support DPoP")
     }
-    implementation(libs.waltid.mdoc.credentials) {
-        because("To sign CBOR credentials")
-    }
-    implementation(libs.kotlinx.datetime) {
-        because("required by walt.id")
-    }
-    implementation(libs.cose.java) {
-        because("required by walt.id")
-    }
+    implementation(libs.kotlinx.datetime)
     implementation(libs.uri.kmp) {
         because("To generate Credentials Offer URIs using custom URIs")
     }
@@ -99,6 +86,7 @@ dependencies {
     implementation(libs.dss.utils.apache.commons)
     implementation(libs.dss.token)
     implementation(libs.dss.cb.ades)
+    implementation(libs.dss.eaa.mdoc)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
