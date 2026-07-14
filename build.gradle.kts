@@ -27,6 +27,7 @@ dependencies {
     implementation(platform(libs.kotlinx.coroutines.bom))
     implementation(platform(libs.kotlinx.serialization.bom))
     implementation(platform(libs.arrow.stack))
+    implementation(platform(libs.dss.bom))
     implementation(platform(SpringBootPlugin.BOM_COORDINATES))
 
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server") {
@@ -95,6 +96,9 @@ dependencies {
     runtimeOnly("org.postgresql:r2dbc-postgresql") {
         because("R2DBC driver for PostgreSQL")
     }
+    implementation(libs.dss.utils.apache.commons)
+    implementation(libs.dss.token)
+    implementation(libs.dss.cb.ades)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)

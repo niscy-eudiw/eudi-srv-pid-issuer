@@ -24,6 +24,7 @@ tink = "1.22.0"
 kover = "0.9.8"
 cose-java = "1.1.0"
 kotlinx-datetime = "0.8.0-0.6.x-compat"
+dss = "6.5.RC1"
 
 [libraries]
 kotlin-bom = { module = "org.jetbrains.kotlin:kotlin-bom", version.ref = "kotlin" }
@@ -32,7 +33,7 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 kotlinx-serialization-bom = { module = "org.jetbrains.kotlinx:kotlinx-serialization-bom", version.ref = "kotlinxSerialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 arrow-stack = { module = "io.arrow-kt:arrow-stack", version.ref = "arrow" }
-arrow-core  = { module = "io.arrow-kt:arrow-core" }
+arrow-core = { module = "io.arrow-kt:arrow-core" }
 arrow-fx-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines" }
 arrow-core-serialization = { module = "io.arrow-kt:arrow-core-serialization" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json" }
@@ -50,6 +51,10 @@ zxing = { module = "com.google.zxing:javase", version.ref = "zxing" }
 cose-java = { module = "com.augustcellars.cose:cose-java", version.ref = "cose-java" }
 statium = { module = "eu.europa.ec.eudi:eudi-lib-kmp-statium-jvm", version.ref = "statium" }
 ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
+dss-bom = { module = "eu.europa.ec.joinup.sd-dss:dss-bom", version.ref = "dss" }
+dss-utils-apache-commons = { module = "eu.europa.ec.joinup.sd-dss:dss-utils-apache-commons" }
+dss-token = { module = "eu.europa.ec.joinup.sd-dss:dss-token" }
+dss-cb-ades = { module = "eu.europa.ec.joinup.sd-dss:dss-cb-ades" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springboot" }

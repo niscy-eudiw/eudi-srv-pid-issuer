@@ -16,16 +16,36 @@
 package eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc
 
 import COSE.OneKey
+import cbor.Cbor
+import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.ECKey
 import eu.europa.ec.eudi.pidissuer.adapter.out.IssuerSigningKey
+import eu.europa.ec.eudi.pidissuer.adapter.out.certificate
 import eu.europa.ec.eudi.pidissuer.adapter.out.cryptoProvider
 import eu.europa.ec.eudi.pidissuer.adapter.out.format.AttestationAttributes
 import eu.europa.ec.eudi.pidissuer.adapter.out.format.EncodeAttestationAttributes
+import eu.europa.ec.eudi.pidissuer.adapter.out.x509.dropRootCA
 import eu.europa.ec.eudi.pidissuer.domain.MsoDocType
 import eu.europa.ec.eudi.pidissuer.domain.StatusListToken
 import eu.europa.ec.eudi.pidissuer.domain.TokenStatusListSpec
+import eu.europa.esig.dss.cbades.signature.CBAdESService
+import eu.europa.esig.dss.cbades.signature.CBAdESSignatureParameters
+import eu.europa.esig.dss.cbades.signature.CBAdESSignatureParameters.X5ChainHeaderPlacement
+import eu.europa.esig.dss.enumerations.COSEStructureType
+import eu.europa.esig.dss.enumerations.DigestAlgorithm
+import eu.europa.esig.dss.enumerations.EncryptionAlgorithm
+import eu.europa.esig.dss.enumerations.SignatureLevel
+import eu.europa.esig.dss.enumerations.SignaturePackaging
+import eu.europa.esig.dss.model.InMemoryDocument
+import eu.europa.esig.dss.model.x509.CertificateToken
+import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier
+import eu.europa.esig.dss.token.AbstractSignatureTokenConnection
+import eu.europa.esig.dss.token.DSSPrivateKeyAccessEntry
+import eu.europa.esig.dss.token.DSSPrivateKeyEntry
+import eu.europa.esig.dss.token.KeyStoreSignatureTokenConnection
 import id.walt.mdoc.SimpleCOSECryptoProvider
 import id.walt.mdoc.cose.COSECryptoProvider
+import id.walt.mdoc.cose.COSESign1
 import id.walt.mdoc.dataelement.DataElement
 import id.walt.mdoc.dataelement.MapElement
 import id.walt.mdoc.dataelement.MapKey
@@ -35,10 +55,17 @@ import id.walt.mdoc.doc.MDocBuilder
 import id.walt.mdoc.mso.DeviceKeyInfo
 import id.walt.mdoc.mso.MSO
 import id.walt.mdoc.mso.ValidityInfo
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.toDeprecatedInstant
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
+import org.springframework.core.io.DefaultResourceLoader
+import java.security.KeyStore
+import java.security.PrivateKey
 import kotlin.io.encoding.Base64
+import java.time.Instant as JavaInstant
+import java.util.Date as JavaDate
 
 fun <Attr> encodeAttestationAttributesInMdoc(
     docType: MsoDocType,
@@ -72,11 +99,117 @@ private class EncodeAttestationAttributesInMdoc<in Attr>(
         val mdoc =
             MDocBuilder(docType)
                 .apply { usage(credential) }
-                .sign(validityInfo, deviceKeyInfo, statusListToken, issuerCryptoProvider, issuerSigningKey.key.keyID)
+                .sign(validityInfo, deviceKeyInfo, statusListToken, issuerSigningKey)
         val encoded = base64UrlSafeNoPadding.encode(mdoc.issuerSigned.toMapElement().toCBOR())
         return JsonPrimitive(encoded)
     }
 }
+
+private suspend fun MDocBuilder.sign(
+    validityInfo: ValidityInfo,
+    deviceKeyInfo: DeviceKeyInfo,
+    statusListToken: StatusListToken?,
+    signingKey: IssuerSigningKey,
+): MDoc {
+    val service = CBAdESService(CommonCertificateVerifier())
+    val signatureParameters =
+        CBAdESSignatureParameters()
+            .apply {
+                signatureLevel = SignatureLevel.CB_AdES_BASELINE_B
+                signaturePackaging = SignaturePackaging.ENVELOPING
+
+                coseStructureType = COSEStructureType.COSE_SIGN1
+                isTagged = true
+
+                bLevel().signingDate = JavaDate.from(JavaInstant.ofEpochSecond(validityInfo.signed.value.epochSeconds))
+
+                signingCertificate = CertificateToken(signingKey.certificate)
+                certificateChain =
+                    signingKey.key
+                        .parsedX509CertChain
+                        .dropRootCA()
+                        .map { CertificateToken(it) }
+                isIncludeCertificateChain = true
+                x5ChainHeaderPlacement = X5ChainHeaderPlacement.protectedHeader
+                isIncludeCertificateChainThumbprints = true
+
+                digestAlgorithm =
+                    when (signingKey.key.curve) {
+                        Curve.P_256 -> DigestAlgorithm.SHA256
+                        Curve.P_384 -> DigestAlgorithm.SHA384
+                        Curve.P_521 -> DigestAlgorithm.SHA512
+                        else -> error("Unsupported ECKey Curve '${signingKey.key.curve}'")
+                    }
+            }
+    val payload = createIssuerAuthPayload(deviceKeyInfo, validityInfo, statusListToken)
+    val unsignedDocument = InMemoryDocument(payload.toEncodedCBORElement().toCBOR())
+    val unsignedData = service.getDataToSign(unsignedDocument, signatureParameters)
+
+    val privateKey = signingKey.toDSSPrivateKeyAccessEntry(includeRootCA = false)
+    val signatureTokenConnection = SimpleSignatureTokenConnection(privateKey)
+
+    val signatureValue =
+        withContext(Dispatchers.IO) {
+            signatureTokenConnection.sign(unsignedData, signatureParameters.digestAlgorithm, privateKey)
+        }
+    val signedDocument = service.signDocument(unsignedDocument, signatureParameters, signatureValue)
+
+    val serializedIssuerAuth = signedDocument.openStream().use { it.readBytes() }
+    val issuerAuth = Cbor.decodeFromByteArray(COSESign1.serializer(), serializedIssuerAuth)
+
+    return build(issuerAuth, null)
+}
+
+private fun MDocBuilder.createIssuerAuthPayload(
+    deviceKeyInfo: DeviceKeyInfo,
+    validityInfo: ValidityInfo,
+    statusListToken: StatusListToken?,
+): MapElement {
+    val mso = MSO.createFor(nameSpacesMap, deviceKeyInfo, docType, validityInfo)
+    return if (null != statusListToken) {
+        buildMap {
+            mso
+                .toMapElement()
+                .value.entries
+                .forEach { put(it.key, it.value) }
+            put(MapKey(TokenStatusListSpec.STATUS), statusListToken.toMsoStatus())
+        }.toDataElement()
+    } else {
+        mso.toMapElement()
+    }
+}
+
+private class SimpleSignatureTokenConnection(
+    private val key: DSSPrivateKeyEntry,
+) : AbstractSignatureTokenConnection() {
+    override fun close() {
+        // no-op
+    }
+
+    override fun getKeys(): List<DSSPrivateKeyEntry> = listOf(key)
+}
+
+private fun IssuerSigningKey.toDSSPrivateKeyAccessEntry(includeRootCA: Boolean): DSSPrivateKeyAccessEntry =
+    object : DSSPrivateKeyAccessEntry {
+        override fun getPrivateKey(): PrivateKey = this@toDSSPrivateKeyAccessEntry.key.toECPrivateKey()
+
+        override fun getCertificate(): CertificateToken = CertificateToken(this@toDSSPrivateKeyAccessEntry.certificate)
+
+        override fun getCertificateChain(): Array<CertificateToken> =
+            this@toDSSPrivateKeyAccessEntry
+                .key
+                .let {
+                    if (includeRootCA) {
+                        it.parsedX509CertChain
+                    } else {
+                        it.parsedX509CertChain.dropRootCA()
+                    }
+                }.map { CertificateToken(it) }
+                .toTypedArray()
+
+        override fun getEncryptionAlgorithm(): EncryptionAlgorithm =
+            EncryptionAlgorithm.forKey(this@toDSSPrivateKeyAccessEntry.key.toECPrivateKey())
+    }
 
 private fun deviceKeyInfo(deviceKey: ECKey): DeviceKeyInfo {
     val key = OneKey(deviceKey.toECPublicKey(), null)
@@ -99,19 +232,7 @@ private fun MDocBuilder.sign(
     cryptoProvider: COSECryptoProvider,
     keyID: String? = null,
 ): MDoc {
-    val mso = MSO.createFor(nameSpacesMap, deviceKeyInfo, docType, validityInfo)
-    val payload =
-        if (null != statusListToken) {
-            buildMap {
-                mso
-                    .toMapElement()
-                    .value.entries
-                    .forEach { put(it.key, it.value) }
-                put(MapKey(TokenStatusListSpec.STATUS), statusListToken.toMsoStatus())
-            }.toDataElement()
-        } else {
-            mso.toMapElement()
-        }
+    val payload = createIssuerAuthPayload(deviceKeyInfo, validityInfo, statusListToken)
     val issuerAuth = cryptoProvider.sign1(payload.toEncodedCBORElement().toCBOR(), null, null, keyID)
     return build(issuerAuth)
 }
