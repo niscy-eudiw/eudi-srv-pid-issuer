@@ -22,6 +22,7 @@ import eu.europa.ec.eudi.pidissuer.adapter.out.IssuerSigningKey
 import eu.europa.ec.eudi.pidissuer.adapter.out.format.AttestationAttributes
 import eu.europa.ec.eudi.pidissuer.adapter.out.format.EncodeAttestationAttributes
 import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.EncodeAttestationAttributesInMdoc
+import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.MsoMdocBuilder
 import eu.europa.ec.eudi.pidissuer.domain.*
 import eu.europa.ec.eudi.pidissuer.port.input.AuthorizationContext
 import eu.europa.ec.eudi.pidissuer.port.input.IssueCredentialError
@@ -33,7 +34,6 @@ import eu.europa.ec.eudi.pidissuer.port.out.persistence.GenerateNotificationId
 import eu.europa.ec.eudi.pidissuer.port.out.persistence.StoreIssuedCredential
 import eu.europa.ec.eudi.pidissuer.port.out.proof.ValidateProof
 import eu.europa.ec.eudi.pidissuer.port.out.status.AllocateStatus
-import eu.europa.esig.dss.eaa.mdoc.creation.MdocEAAClaimParameters
 import kotlinx.coroutines.Dispatchers
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
@@ -111,7 +111,7 @@ class IssueMdoc<Attr>(
             getAttestationAttributes: GetAttestationAttributes<Data>,
             allocateStatus: AllocateStatus?,
             issuerSigningKey: IssuerSigningKey,
-            usage: MdocEAAClaimParameters.(Data) -> Unit,
+            usage: MsoMdocBuilder.(Data) -> Unit,
         ): IssueMdoc<Data> =
             IssueMdoc(
                 configuration,

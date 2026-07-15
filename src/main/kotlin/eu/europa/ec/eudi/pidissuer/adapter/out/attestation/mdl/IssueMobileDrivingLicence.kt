@@ -22,18 +22,13 @@ import eu.europa.ec.eudi.pidissuer.adapter.out.attestation.IssueMdoc
 import eu.europa.ec.eudi.pidissuer.adapter.out.attestation.mdl.DrivingPrivilege.Restriction.GenericRestriction
 import eu.europa.ec.eudi.pidissuer.adapter.out.attestation.mdl.DrivingPrivilege.Restriction.ParameterizedRestriction
 import eu.europa.ec.eudi.pidissuer.adapter.out.coseAlgorithm
-import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.EncodeAttestationAttributesInMdoc
-import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.addItemToSign
-import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.toFullDate
+import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.*
 import eu.europa.ec.eudi.pidissuer.domain.*
 import eu.europa.ec.eudi.pidissuer.port.out.attestation.GetAttestationAttributes
 import eu.europa.ec.eudi.pidissuer.port.out.persistence.GenerateNotificationId
 import eu.europa.ec.eudi.pidissuer.port.out.persistence.StoreIssuedCredential
 import eu.europa.ec.eudi.pidissuer.port.out.proof.ValidateProof
 import eu.europa.ec.eudi.pidissuer.port.out.status.AllocateStatus
-import eu.europa.esig.dss.cbades.cbor.CBORObject
-import eu.europa.esig.dss.cbades.cbor.CBORObjectFactory
-import eu.europa.esig.dss.eaa.mdoc.creation.MdocEAAClaimParameters
 import kotlinx.datetime.toKotlinLocalDate
 import java.time.ZoneOffset
 import kotlin.time.Clock
@@ -63,7 +58,7 @@ fun IssueMobileDrivingLicence(
         storeIssuedCredential,
         getAttestationAttributes,
         allocateStatus,
-        EncodeAttestationAttributesInMdoc(issuerSigningKey, configuration.docType) { addItemsToSign(it) },
+        EncodeAttestationAttributesInMdoc(issuerSigningKey, configuration.docType) { put(it) },
     )
 }
 
@@ -88,121 +83,119 @@ internal fun mdlV1Cfg(
     )
 }
 
-private fun MdocEAAClaimParameters.addItemsToSign(licence: MobileDrivingLicence) {
-    addItemsToSign(licence.driver)
-    addItemsToSign(licence.issueAndExpiry)
-    addItemsToSign(licence.issuer)
-    addItemToSign(MsoMdocMdlV1Claims.DocumentNumber, licence.documentNumber.value)
-    addItemToSign(MsoMdocMdlV1Claims.DrivingPrivileges, licence.privileges.map { it.toCBORObject() })
-    licence.administrativeNumber?.let { addItemToSign(MsoMdocMdlV1Claims.AdministrativeNumber, it.value) }
+private fun MsoMdocBuilder.put(licence: MobileDrivingLicence) {
+    put(MsoMdocMdlV1Claims.nameSpace) {
+        put(licence.driver)
+        put(licence.issueAndExpiry)
+        put(licence.issuer)
+        put(MsoMdocMdlV1Claims.DocumentNumber.name, licence.documentNumber.value)
+        put(MsoMdocMdlV1Claims.DrivingPrivileges.name, licence.privileges.map { it.toMsoMdoc() }.toMsoMdoc())
+        licence.administrativeNumber?.let { put(MsoMdocMdlV1Claims.AdministrativeNumber.name, it.value) }
+    }
 }
 
-private fun MdocEAAClaimParameters.addItemsToSign(driver: Driver) {
-    addItemToSign(MsoMdocMdlV1Claims.FamilyName, driver.familyName.latin.value)
-    addItemToSign(MsoMdocMdlV1Claims.GivenName, driver.givenName.latin.value)
-    addItemToSign(MsoMdocMdlV1Claims.BirthDate, driver.birthDate.toKotlinLocalDate())
-    addItemToSign(MsoMdocMdlV1Claims.Portrait, driver.portrait.image.content)
+private fun MsoMdocNameSpaceBuilder.put(driver: Driver) {
+    put(MsoMdocMdlV1Claims.FamilyName.name, driver.familyName.latin.value)
+    put(MsoMdocMdlV1Claims.GivenName.name, driver.givenName.latin.value)
+    put(MsoMdocMdlV1Claims.BirthDate.name, driver.birthDate.toKotlinLocalDate())
+    put(MsoMdocMdlV1Claims.Portrait.name, driver.portrait.image.content)
     driver.portrait.capturedAt?.let {
-        addItemToSign(
-            MsoMdocMdlV1Claims.PortraitCaptureDate,
+        put(
+            MsoMdocMdlV1Claims.PortraitCaptureDate.name,
             it.toInstant(ZoneOffset.UTC).toKotlinInstant(),
         )
     }
-    driver.sex?.let { addItemToSign(MsoMdocMdlV1Claims.Sex, it.code) }
-    driver.height?.let { addItemToSign(MsoMdocMdlV1Claims.Height, it.value) }
-    driver.weight?.let { addItemToSign(MsoMdocMdlV1Claims.Weight, it.value) }
-    driver.eyeColour?.let { addItemToSign(MsoMdocMdlV1Claims.EyeColour, it.code) }
-    driver.hairColour?.let { addItemToSign(MsoMdocMdlV1Claims.HairColour, it.code) }
-    driver.birthPlace?.let { addItemToSign(MsoMdocMdlV1Claims.BirthPlace, it.value) }
+    driver.sex?.let { put(MsoMdocMdlV1Claims.Sex.name, it.code) }
+    driver.height?.let { put(MsoMdocMdlV1Claims.Height.name, it.value) }
+    driver.weight?.let { put(MsoMdocMdlV1Claims.Weight.name, it.value) }
+    driver.eyeColour?.let { put(MsoMdocMdlV1Claims.EyeColour.name, it.code) }
+    driver.hairColour?.let { put(MsoMdocMdlV1Claims.HairColour.name, it.code) }
+    driver.birthPlace?.let { put(MsoMdocMdlV1Claims.BirthPlace.name, it.value) }
     driver.residence?.let { residence ->
-        residence.address?.let { addItemToSign(MsoMdocMdlV1Claims.ResidentAddress, it.value) }
-        residence.city?.let { addItemToSign(MsoMdocMdlV1Claims.ResidentCity, it.value) }
-        residence.state?.let { addItemToSign(MsoMdocMdlV1Claims.ResidentState, it.value) }
-        residence.postalCode?.let { addItemToSign(MsoMdocMdlV1Claims.ResidentPostalCode, it.value) }
-        addItemToSign(MsoMdocMdlV1Claims.ResidentCountry, residence.country.code)
+        residence.address?.let { put(MsoMdocMdlV1Claims.ResidentAddress.name, it.value) }
+        residence.city?.let { put(MsoMdocMdlV1Claims.ResidentCity.name, it.value) }
+        residence.state?.let { put(MsoMdocMdlV1Claims.ResidentState.name, it.value) }
+        residence.postalCode?.let { put(MsoMdocMdlV1Claims.ResidentPostalCode.name, it.value) }
+        put(MsoMdocMdlV1Claims.ResidentCountry.name, residence.country.code)
     }
     driver.age?.let { age ->
-        addItemToSign(MsoMdocMdlV1Claims.AgeInYears, age.value.value)
-        age.birthYear?.let { addItemToSign(MsoMdocMdlV1Claims.AgeBirthYear, it.value) }
-        addItemToSign(MsoMdocMdlV1Claims.AgeOver18, age.over18)
-        addItemToSign(MsoMdocMdlV1Claims.AgeOver21, age.over21)
+        put(MsoMdocMdlV1Claims.AgeInYears.name, age.value.value)
+        age.birthYear?.let { put(MsoMdocMdlV1Claims.AgeBirthYear.name, it.value) }
+        put(MsoMdocMdlV1Claims.AgeOver18.name, age.over18)
+        put(MsoMdocMdlV1Claims.AgeOver21.name, age.over21)
     }
-    driver.nationality?.let { addItemToSign(MsoMdocMdlV1Claims.Nationality, it.code) }
-    driver.familyName.utf8?.let { addItemToSign(MsoMdocMdlV1Claims.FamilyNameNationalCharacter, it) }
-    driver.givenName.utf8?.let { addItemToSign(MsoMdocMdlV1Claims.GivenNameNationalCharacter, it) }
-    driver.signature?.let { addItemToSign(MsoMdocMdlV1Claims.SignatureUsualMark, it.content) }
+    driver.nationality?.let { put(MsoMdocMdlV1Claims.Nationality.name, it.code) }
+    driver.familyName.utf8?.let { put(MsoMdocMdlV1Claims.FamilyNameNationalCharacter.name, it) }
+    driver.givenName.utf8?.let { put(MsoMdocMdlV1Claims.GivenNameNationalCharacter.name, it) }
+    driver.signature?.let { put(MsoMdocMdlV1Claims.SignatureUsualMark.name, it.content) }
 }
 
-private fun MdocEAAClaimParameters.addItemsToSign(issueAndExpiry: IssueAndExpiry) {
-    addItemToSign(MsoMdocMdlV1Claims.IssueDate, issueAndExpiry.issuedAt.toKotlinLocalDate())
-    addItemToSign(MsoMdocMdlV1Claims.ExpiryDate, issueAndExpiry.expiresAt.toKotlinLocalDate())
+private fun MsoMdocNameSpaceBuilder.put(issueAndExpiry: IssueAndExpiry) {
+    put(MsoMdocMdlV1Claims.IssueDate.name, issueAndExpiry.issuedAt.toKotlinLocalDate())
+    put(MsoMdocMdlV1Claims.ExpiryDate.name, issueAndExpiry.expiresAt.toKotlinLocalDate())
 }
 
-private fun MdocEAAClaimParameters.addItemsToSign(issuer: Issuer) {
-    addItemToSign(MsoMdocMdlV1Claims.IssuingCountry, issuer.country.countryCode.code)
-    addItemToSign(MsoMdocMdlV1Claims.IssuingAuthority, issuer.authority.value)
-    addItemToSign(MsoMdocMdlV1Claims.IssuingCountryDistinguishingSign, issuer.country.distinguishingSign.code)
-    issuer.jurisdiction?.let { addItemToSign(MsoMdocMdlV1Claims.IssuingJurisdiction, it.value) }
+private fun MsoMdocNameSpaceBuilder.put(issuer: Issuer) {
+    put(MsoMdocMdlV1Claims.IssuingCountry.name, issuer.country.countryCode.code)
+    put(MsoMdocMdlV1Claims.IssuingAuthority.name, issuer.authority.value)
+    put(MsoMdocMdlV1Claims.IssuingCountryDistinguishingSign.name, issuer.country.distinguishingSign.code)
+    issuer.jurisdiction?.let { put(MsoMdocMdlV1Claims.IssuingJurisdiction.name, it.value) }
 }
 
-private fun DrivingPrivilege.toCBORObject(): CBORObject =
-    CBORObjectFactory.toCBORObject(
-        buildMap {
-            put("vehicle_category_code", vehicleCategory.code)
-            issueAndExpiry?.let { issueAndExpiry ->
-                put("issue_date", issueAndExpiry.issuedAt.toKotlinLocalDate().toFullDate())
-                put("expiry_date", issueAndExpiry.expiresAt.toKotlinLocalDate().toFullDate())
-            }
-            restrictions?.let { restrictions ->
-                put("codes", restrictions.map { it.toCBORObject() })
-            }
-        },
-    )
+private fun DrivingPrivilege.toMsoMdoc(): MsoMdocAttribute.MapAttribute =
+    buildMsoMdocMap {
+        put("vehicle_category_code", vehicleCategory.code)
+        issueAndExpiry?.let { issueAndExpiry ->
+            put("issue_date", issueAndExpiry.issuedAt.toKotlinLocalDate())
+            put("expiry_date", issueAndExpiry.expiresAt.toKotlinLocalDate())
+        }
+        restrictions?.let { restrictions ->
+            put("codes", restrictions.map { it.toMsoMdoc() }.toMsoMdoc())
+        }
+    }
 
-private fun DrivingPrivilege.Restriction.toCBORObject(): CBORObject =
-    CBORObjectFactory.toCBORObject(
-        buildMap {
-            val (code, sign, value) =
-                when (this@toCBORObject) {
-                    is GenericRestriction -> {
-                        Triple(code, null, null)
-                    }
-
-                    is ParameterizedRestriction.VehiclePower -> {
-                        Triple(
-                            code,
-                            value.code,
-                            value.value.value,
-                        )
-                    }
-
-                    is ParameterizedRestriction.VehicleAuthorizedMass -> {
-                        Triple(
-                            code,
-                            value.code,
-                            value.value.value,
-                        )
-                    }
-
-                    is ParameterizedRestriction.VehicleCylinderCapacity -> {
-                        Triple(
-                            code,
-                            value.code,
-                            value.value.value,
-                        )
-                    }
-
-                    is ParameterizedRestriction.VehicleAuthorizedPassengerSeats -> {
-                        Triple(
-                            code,
-                            value.code,
-                            value.value.value,
-                        )
-                    }
+private fun DrivingPrivilege.Restriction.toMsoMdoc(): MsoMdocAttribute.MapAttribute =
+    buildMsoMdocMap {
+        val (code, sign, value) =
+            when (this@toMsoMdoc) {
+                is GenericRestriction -> {
+                    Triple(code, null, null)
                 }
 
-            put("code", code)
-            sign?.let { put("sign", it) }
-            value?.let { put("value", it.toString()) }
-        },
-    )
+                is ParameterizedRestriction.VehiclePower -> {
+                    Triple(
+                        code,
+                        value.code,
+                        value.value.value,
+                    )
+                }
+
+                is ParameterizedRestriction.VehicleAuthorizedMass -> {
+                    Triple(
+                        code,
+                        value.code,
+                        value.value.value,
+                    )
+                }
+
+                is ParameterizedRestriction.VehicleCylinderCapacity -> {
+                    Triple(
+                        code,
+                        value.code,
+                        value.value.value,
+                    )
+                }
+
+                is ParameterizedRestriction.VehicleAuthorizedPassengerSeats -> {
+                    Triple(
+                        code,
+                        value.code,
+                        value.value.value,
+                    )
+                }
+            }
+
+        put("code", code)
+        sign?.let { put("sign", it) }
+        value?.let { put("value", it.toString()) }
+    }

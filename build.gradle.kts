@@ -123,6 +123,7 @@ kotlin {
             freeCompilerArgs.addAll(
                 "-Xjsr305=strict",
                 "-Xconsistent-data-class-copy-visibility",
+                "-Xexplicit-backing-fields",
             )
         }
     }

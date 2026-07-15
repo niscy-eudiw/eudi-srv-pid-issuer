@@ -19,21 +19,13 @@ import arrow.core.nonEmptySetOf
 import eu.europa.ec.eudi.pidissuer.adapter.out.IssuerSigningKey
 import eu.europa.ec.eudi.pidissuer.adapter.out.attestation.IssueMdoc
 import eu.europa.ec.eudi.pidissuer.adapter.out.coseAlgorithm
-import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.EncodeAttestationAttributesInMdoc
-import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.addItemToSign
-import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.toFullDate
+import eu.europa.ec.eudi.pidissuer.adapter.out.format.mdoc.*
 import eu.europa.ec.eudi.pidissuer.domain.*
 import eu.europa.ec.eudi.pidissuer.port.out.attestation.GetAttestationAttributes
 import eu.europa.ec.eudi.pidissuer.port.out.persistence.GenerateNotificationId
 import eu.europa.ec.eudi.pidissuer.port.out.persistence.StoreIssuedCredential
 import eu.europa.ec.eudi.pidissuer.port.out.proof.ValidateProof
 import eu.europa.ec.eudi.pidissuer.port.out.status.AllocateStatus
-import eu.europa.esig.dss.cbades.cbor.CBORObjectFactory
-import eu.europa.esig.dss.cbades.cbor.CBORUtils
-import eu.europa.esig.dss.eaa.mdoc.creation.MdocEAAClaimParameters
-import eu.europa.esig.dss.eaa.mdoc.creation.claim.MdocEAAClaim
-import eu.europa.esig.dss.spi.DSSUtils
-import kotlinx.datetime.LocalDate
 import java.util.Locale.ENGLISH
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -114,73 +106,68 @@ fun IssueMsoMdocPid(
     )
 }
 
-private fun MdocEAAClaimParameters.pidAttributes(pidAttributes: PidAttributes) {
-    addItemsToSign(pidAttributes.pid)
-    addItemsToSign(pidAttributes.metaData)
+private fun MsoMdocBuilder.pidAttributes(pidAttributes: PidAttributes) {
+    put(MsoMdocPidClaims.nameSpace) {
+        put(pidAttributes.pid)
+        put(pidAttributes.metaData)
+    }
 }
 
-private fun MdocEAAClaimParameters.addItemsToSign(pid: Pid) {
-    addItemToSign(MsoMdocPidClaims.FamilyName, pid.familyName.value)
-    addItemToSign(MsoMdocPidClaims.GivenName, pid.givenName.value)
-    addItemToSign(MsoMdocPidClaims.BirthDate, pid.birthDate)
+private fun MsoMdocNameSpaceBuilder.put(pid: Pid) {
+    put(MsoMdocPidClaims.FamilyName.name, pid.familyName.value)
+    put(MsoMdocPidClaims.GivenName.name, pid.givenName.value)
+    put(MsoMdocPidClaims.BirthDate.name, pid.birthDate)
 
-    val placeOfBirth =
+    val placeOfBirth: MsoMdocAttribute.MapAttribute =
         with(pid.placeOfBirth) {
-            CBORObjectFactory.toCBORObject(
-                buildMap {
-                    country?.let { put("country", it.value) }
-                    region?.let { put("region", it.value) }
-                    locality?.let { put("locality", it.value) }
-                },
-            )
+            buildMsoMdocMap {
+                country?.let { put("country", it.value) }
+                region?.let { put("region", it.value) }
+                locality?.let { put("locality", it.value) }
+            }
         }
-    addItemToSign(MsoMdocPidClaims.PlaceOfBirth, placeOfBirth)
+    put(MsoMdocPidClaims.PlaceOfBirth.name, placeOfBirth)
 
-    addItemToSign(MsoMdocPidClaims.Nationality, CBORObjectFactory.toCBORObject(pid.nationalities.map { it.value }))
-    pid.residentAddress?.let { addItemToSign(MsoMdocPidClaims.ResidenceAddress, it) }
-    pid.residentCountry?.let { addItemToSign(MsoMdocPidClaims.ResidenceCountry, it.value) }
-    pid.residentState?.let { addItemToSign(MsoMdocPidClaims.ResidenceState, it.value) }
-    pid.residentCity?.let { addItemToSign(MsoMdocPidClaims.ResidenceCity, it.value) }
-    pid.residentPostalCode?.let { addItemToSign(MsoMdocPidClaims.ResidencePostalCode, it.value) }
-    pid.residentStreet?.let { addItemToSign(MsoMdocPidClaims.ResidenceStreet, it.value) }
-    pid.residentHouseNumber?.let { addItemToSign(MsoMdocPidClaims.ResidenceHouseNumber, it) }
+    put(MsoMdocPidClaims.Nationality.name, pid.nationalities.map { it.value.toMsoMdoc() }.toMsoMdoc())
+    pid.residentAddress?.let { put(MsoMdocPidClaims.ResidenceAddress.name, it) }
+    pid.residentCountry?.let { put(MsoMdocPidClaims.ResidenceCountry.name, it.value) }
+    pid.residentState?.let { put(MsoMdocPidClaims.ResidenceState.name, it.value) }
+    pid.residentCity?.let { put(MsoMdocPidClaims.ResidenceCity.name, it.value) }
+    pid.residentPostalCode?.let { put(MsoMdocPidClaims.ResidencePostalCode.name, it.value) }
+    pid.residentStreet?.let { put(MsoMdocPidClaims.ResidenceStreet.name, it.value) }
+    pid.residentHouseNumber?.let { put(MsoMdocPidClaims.ResidenceHouseNumber.name, it) }
     pid.portrait?.let {
         val value =
             when (it) {
                 is PortraitImage.JPEG -> it.value
                 is PortraitImage.JPEG2000 -> it.value
             }
-        addItemToSign(MsoMdocPidClaims.Portrait, value)
+        put(MsoMdocPidClaims.Portrait.name, value)
     }
-    pid.familyNameBirth?.let { addItemToSign(MsoMdocPidClaims.FamilyNameBirth, it.value) }
-    pid.givenNameBirth?.let { addItemToSign(MsoMdocPidClaims.GivenNameBirth, it.value) }
-    pid.sex?.let { addItemToSign(MsoMdocPidClaims.Sex, it.value) }
-    pid.emailAddress?.let { addItemToSign(MsoMdocPidClaims.EmailAddress, it) }
-    pid.mobilePhoneNumber?.let { addItemToSign(MsoMdocPidClaims.MobilePhoneNumberAttribute, it.value) }
-    pid.personalAdministrativeNumber?.let {
-        addItemToSign(
-            MsoMdocPidClaims.PersonalAdministrativeNumber,
-            it.value,
-        )
-    }
+    pid.familyNameBirth?.let { put(MsoMdocPidClaims.FamilyNameBirth.name, it.value) }
+    pid.givenNameBirth?.let { put(MsoMdocPidClaims.GivenNameBirth.name, it.value) }
+    pid.sex?.let { put(MsoMdocPidClaims.Sex.name, it.value) }
+    pid.emailAddress?.let { put(MsoMdocPidClaims.EmailAddress.name, it) }
+    pid.mobilePhoneNumber?.let { put(MsoMdocPidClaims.MobilePhoneNumberAttribute.name, it.value) }
+    pid.personalAdministrativeNumber?.let { put(MsoMdocPidClaims.PersonalAdministrativeNumber.name, it.value) }
 }
 
-private fun MdocEAAClaimParameters.addItemsToSign(metaData: PidMetaData) {
-    addItemToSign(MsoMdocPidClaims.ExpiryDate, metaData.expiryDate)
+private fun MsoMdocNameSpaceBuilder.put(metaData: PidMetaData) {
+    put(MsoMdocPidClaims.ExpiryDate.name, metaData.expiryDate)
     when (val issuingAuthority = metaData.issuingAuthority) {
         is IssuingAuthority.MemberState -> {
-            addItemToSign(MsoMdocPidClaims.IssuingAuthority, issuingAuthority.code.value)
+            put(MsoMdocPidClaims.IssuingAuthority.name, issuingAuthority.code.value)
         }
 
         is IssuingAuthority.AdministrativeAuthority -> {
-            addItemToSign(MsoMdocPidClaims.IssuingAuthority, issuingAuthority.value)
+            put(MsoMdocPidClaims.IssuingAuthority.name, issuingAuthority.value)
         }
     }
-    addItemToSign(MsoMdocPidClaims.IssuingCountry, metaData.issuingCountry.value)
-    metaData.documentNumber?.let { addItemToSign(MsoMdocPidClaims.DocumentNumber, it.value) }
-    metaData.issuingJurisdiction?.let { addItemToSign(MsoMdocPidClaims.IssuingJurisdiction, it) }
-    metaData.issuanceDate?.let { addItemToSign(MsoMdocPidClaims.IssuanceDate, it) }
+    put(MsoMdocPidClaims.IssuingCountry.name, metaData.issuingCountry.value)
+    metaData.documentNumber?.let { put(MsoMdocPidClaims.DocumentNumber.name, it.value) }
+    metaData.issuingJurisdiction?.let { put(MsoMdocPidClaims.IssuingJurisdiction.name, it) }
+    metaData.issuanceDate?.let { put(MsoMdocPidClaims.IssuanceDate.name, it) }
     metaData.attestationLegalCategory?.let {
-        addItemToSign(MsoMdocPidClaims.AttestationLegalCategory, it)
+        put(MsoMdocPidClaims.AttestationLegalCategory.name, it)
     }
 }

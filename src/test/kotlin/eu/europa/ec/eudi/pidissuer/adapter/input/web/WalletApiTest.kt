@@ -47,11 +47,8 @@ import kotlinx.serialization.json.Json
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.ApplicationContext
-import org.springframework.context.ApplicationContextInitializer
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
-import org.springframework.context.support.GenericApplicationContext
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -62,7 +59,6 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken.TokenType
 import org.springframework.security.oauth2.core.OAuth2TokenIntrospectionClaimNames
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockAuthentication
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.springSecurity
-import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody

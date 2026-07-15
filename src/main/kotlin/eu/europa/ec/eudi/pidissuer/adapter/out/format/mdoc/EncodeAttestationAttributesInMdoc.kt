@@ -22,11 +22,13 @@ import eu.europa.ec.eudi.pidissuer.adapter.out.format.AttestationAttributes
 import eu.europa.ec.eudi.pidissuer.adapter.out.format.EncodeAttestationAttributes
 import eu.europa.ec.eudi.pidissuer.adapter.out.x509.dropRootCA
 import eu.europa.ec.eudi.pidissuer.domain.MsoDocType
+import eu.europa.esig.dss.cbades.cbor.CBORObject
+import eu.europa.esig.dss.cbades.cbor.CBORObjectFactory
 import eu.europa.esig.dss.cbades.signature.CBAdESSignatureParameters
 import eu.europa.esig.dss.cbades.signature.CBAdESSignatureParameters.X5ChainHeaderPlacement
-import eu.europa.esig.dss.eaa.mdoc.creation.MdocEAAClaimParameters
 import eu.europa.esig.dss.eaa.mdoc.creation.MdocEAAPayloadParameters
 import eu.europa.esig.dss.eaa.mdoc.creation.MdocEAAService
+import eu.europa.esig.dss.eaa.mdoc.creation.claim.MdocEAAClaim
 import eu.europa.esig.dss.enumerations.*
 import eu.europa.esig.dss.model.x509.CertificateToken
 import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier
@@ -47,7 +49,7 @@ private val base64UrlSafeNoPadding = Base64.UrlSafe.withPadding(Base64.PaddingOp
 fun <Attr> EncodeAttestationAttributesInMdoc(
     issuerSigningKey: IssuerSigningKey,
     docType: MsoDocType,
-    usage: MdocEAAClaimParameters.(Attr) -> Unit,
+    usage: MsoMdocBuilder.(Attr) -> Unit,
 ): EncodeAttestationAttributes<Attr> =
     object : EncodeAttestationAttributes<Attr> {
         override suspend fun invoke(attestationAttributes: AttestationAttributes<Attr>): JsonElement {
@@ -67,7 +69,19 @@ fun <Attr> EncodeAttestationAttributesInMdoc(
                         if (null != statusListToken) {
                             setStatusList(statusListToken.index.toInt(), statusListToken.statusList.toString())
                         }
-                        selectivelyDisclosable().usage(credential)
+                        val nameSpaceAttributes =
+                            buildMsoMdoc {
+                                usage(credential)
+                            }
+                        selectivelyDisclosable()
+                            .otherClaims
+                            .apply {
+                                nameSpaceAttributes.forEach { (nameSpace, attributes) ->
+                                    attributes.forEach { (name, value) ->
+                                        add(MdocEAAClaim.create(nameSpace, name, value.toCBORObject()))
+                                    }
+                                }
+                            }
                     }
 
             val signatureParameters = signatureParameters(issuedAt)
@@ -150,4 +164,76 @@ private fun IssuerSigningKey.toDSSPrivateKeyAccessEntry(): DSSPrivateKeyAccessEn
 
         override fun getEncryptionAlgorithm(): EncryptionAlgorithm =
             EncryptionAlgorithm.forKey(this@toDSSPrivateKeyAccessEntry.key.toECPrivateKey())
+    }
+
+private fun MsoMdocAttribute<*>.toCBORObject(): CBORObject = toCBORObject(this)
+
+private val toCBORObject: DeepRecursiveFunction<MsoMdocAttribute<*>, CBORObject> =
+    DeepRecursiveFunction {
+        val (value, tag) =
+            when (it) {
+                is MsoMdocAttribute.StringAttribute -> {
+                    it.value to null
+                }
+
+                is MsoMdocAttribute.IntAttribute -> {
+                    it.value to null
+                }
+
+                is MsoMdocAttribute.UIntAttribute -> {
+                    it.value.toLong() to null
+                }
+
+                is MsoMdocAttribute.DoubleAttribute -> {
+                    it.value to null
+                }
+
+                is MsoMdocAttribute.FloatAttribute -> {
+                    it.value to null
+                }
+
+                is MsoMdocAttribute.BooleanAttribute -> {
+                    it.value to null
+                }
+
+                is MsoMdocAttribute.LocalDateAttribute -> {
+                    val value =
+                        when (it.format) {
+                            MsoMdocAttribute.LocalDateAttribute.Format.FullDateString -> it.value.toString()
+                            MsoMdocAttribute.LocalDateAttribute.Format.FullDateInt -> it.value.toEpochDays()
+                        }
+                    value to it.format.tag
+                }
+
+                is MsoMdocAttribute.InstantAttribute -> {
+                    val value =
+                        when (it.format) {
+                            MsoMdocAttribute.InstantAttribute.Format.TDate -> it.value.toString()
+                            MsoMdocAttribute.InstantAttribute.Format.TTimeInt -> it.value.epochSeconds
+                            MsoMdocAttribute.InstantAttribute.Format.TTimeFloat -> it.value.toEpochMilliseconds() / 1000.0f
+                            MsoMdocAttribute.InstantAttribute.Format.TTimeDouble -> it.value.toEpochMilliseconds() / 1000.0
+                        }
+                    value to it.format.tag
+                }
+
+                is MsoMdocAttribute.ByteArrayAttribute -> {
+                    it.value to null
+                }
+
+                is MsoMdocAttribute.ListAttribute -> {
+                    it.value.map { element -> callRecursive(element) } to null
+                }
+
+                is MsoMdocAttribute.MapAttribute -> {
+                    it.value.mapValues { (_, element) -> callRecursive(element) } to null
+                }
+            }
+
+        CBORObjectFactory
+            .toCBORObject(value)
+            .apply {
+                if (null != tag) {
+                    setTag(tag)
+                }
+            }
     }
