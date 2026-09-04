@@ -37,6 +37,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import org.slf4j.LoggerFactory
+import kotlin.time.Instant
 
 enum class SdJwtVcSerialization {
     Compact,
@@ -94,10 +95,13 @@ private class EncodeAttestationAttributesInSdJwtVc<in Attr>(
                 }
                 build(attributes)
             }
-        return enode(spec)
+        return context(issuedAt) {
+            encode(spec)
+        }
     }
 
-    private suspend fun enode(spec: SdJwtObject): JsonElement =
+    context(issuedAt: Instant)
+    private suspend fun encode(spec: SdJwtObject): JsonElement =
         context(issuerSigningKey, digestsHashAlgorithm, sdJwtVcSerialization, NimbusSdJwtOps) {
             val issuer = sdJwtVcIssuer(digestsHashAlgorithm)
             val sdJwt = issuer.issue(spec).getOrThrow().also { it.logDebug() }
@@ -108,7 +112,7 @@ private class EncodeAttestationAttributesInSdJwtVc<in Attr>(
         }
 }
 
-context(issuerSigningKey: IssuerSigningKey)
+context(issuerSigningKey: IssuerSigningKey, issuedAt: Instant)
 private fun sdJwtVcIssuer(digestsHashAlgorithm: HashAlgorithm): SdJwtIssuer<SignedJWT> {
     val factory = SdJwtFactory(digestsHashAlgorithm)
     val signer = ECDSASigner(issuerSigningKey.key)
@@ -118,7 +122,7 @@ private fun sdJwtVcIssuer(digestsHashAlgorithm: HashAlgorithm): SdJwtIssuer<Sign
             .map { Base64.encode(it.encoded) }
     return NimbusSdJwtOps.issuer(factory, signer, issuerSigningKey.signingAlgorithm) {
         type(JOSEObjectType(SdJwtVcSpec.MEDIA_SUBTYPE_DC_SD_JWT))
-        keyID(issuerSigningKey.key.keyID)
+        customParam("iat", issuedAt.epochSeconds)
         x509CertChain(x5c)
     }
 }

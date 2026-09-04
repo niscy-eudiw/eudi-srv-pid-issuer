@@ -22,6 +22,7 @@ tink = "1.22.0"
 kover = "0.9.8"
 cose-java = "1.1.0"
 kotlinx-datetime = "0.8.0-0.6.x-compat"
+dss = "6.5"
 
 [libraries]
 kotlin-bom = { module = "org.jetbrains.kotlin:kotlin-bom", version.ref = "kotlin" }
@@ -46,6 +47,14 @@ zxing = { module = "com.google.zxing:javase", version.ref = "zxing" }
 cose-java = { module = "com.augustcellars.cose:cose-java", version.ref = "cose-java" }
 statium = { module = "eu.europa.ec.eudi:eudi-lib-kmp-statium-jvm", version.ref = "statium" }
 ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
+dss-bom = { module = "eu.europa.ec.joinup.sd-dss:dss-bom", version.ref = "dss" }
+dss-utils-apache-commons = { module = "eu.europa.ec.joinup.sd-dss:dss-utils-apache-commons" }
+dss-token = { module = "eu.europa.ec.joinup.sd-dss:dss-token" }
+dss-jades = { module = "eu.europa.ec.joinup.sd-dss:dss-jades" }
+dss-sd-jwt = { module = "eu.europa.ec.joinup.sd-dss:dss-sd-jwt" }
+dss-validation = { module = "eu.europa.ec.joinup.sd-dss:dss-validation" }
+dss-attestation = { module = "eu.europa.ec.joinup.sd-dss:dss-attestation" }
+dss-policy-jaxb = { module = "eu.europa.ec.joinup.sd-dss:dss-policy-jaxb" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springboot" }

@@ -102,6 +102,15 @@ dependencies {
     testRuntimeOnly("com.h2database:h2") {
         because("H2 in-memory database")
     }
+
+    testImplementation(platform(libs.dss.bom))
+    testImplementation(libs.dss.utils.apache.commons)
+    testImplementation(libs.dss.token)
+    testImplementation(libs.dss.jades)
+    testImplementation(libs.dss.sd.jwt)
+    testImplementation(libs.dss.validation)
+    testImplementation(libs.dss.attestation)
+    testImplementation(libs.dss.policy.jaxb)
 }
 
 kotlin {
