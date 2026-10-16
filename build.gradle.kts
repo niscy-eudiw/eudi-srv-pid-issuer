@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.dss.policy.jaxb)
     implementation(libs.dss.jades)
     implementation(libs.dss.validation)
+    implementation(libs.dss.utils.apache.commons)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)

@@ -39,6 +39,7 @@ import kotlin.reflect.KClass
         "spring.sql.init.schema-locations=file:docker-compose/postgresql/schema/V1.sql",
         "spring.sql.init.mode=embedded",
         "spring.profiles.active=develop",
+        "issuer.keyAttestation.signatureVerifier.jadesBb=false",
     ],
 )
 @ContextConfiguration

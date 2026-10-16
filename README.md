@@ -564,6 +564,15 @@ Variable: `ISSUER_TRUST_SERVICE_URL`
 Description: The URL of the trust service endpoint for trust verification. If no URL is configured, no trust verification is performed.  
 Default value: N/A  
 
+### Key Attestation Signature Verifier
+
+PID Issuer verifies the signature of the Wallet Provider's key attestation. The verification
+algorithm is selected with the following environment variable:
+
+Variable: `ISSUER_KEYATTESTATION_SIGNATUREVERIFIER_JADESBB`  
+Description: When `true`, the JAdES B-B (DSS) verifier is used to validate the key attestation signature. When `false`, a plain JWS verifier is used.  
+Default value: `true`  
+
 ### Metadata configuration
 
 Variable: `ISSUER_METADATA_PREFERRED_CLIENT_STATUS_PERIOD`  

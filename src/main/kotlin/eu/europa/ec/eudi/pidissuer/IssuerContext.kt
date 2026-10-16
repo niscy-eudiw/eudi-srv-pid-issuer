@@ -80,6 +80,7 @@ internal class AppBeans :
         registerBean { env.httpProxy() }
         registerBean { WebClients(bean(), secure = "insecure" !in env.activeProfiles) }
         registerBean { trustValidatorService(env, bean()) }
+        registerBean { signatureVerifier(env) }
         registerBean { DefaultGenerateQrCode() }
         registerBean { HandleNotificationRequest(bean()) }
         registerBean {
@@ -205,6 +206,7 @@ internal class AppBeans :
                     validateProof =
                         validateProof(
                             issuerPublicUrl,
+                            bean(),
                             bean(),
                             bean(),
                             bean(),

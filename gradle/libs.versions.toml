@@ -51,6 +51,7 @@ ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 dss-policy-jaxb = { module = "eu.europa.ec.joinup.sd-dss:dss-policy-jaxb", version.ref = "dss" }
 dss-jades = { module = "eu.europa.ec.joinup.sd-dss:dss-jades", version.ref = "dss" }
 dss-validation = { module = "eu.europa.ec.joinup.sd-dss:dss-validation", version.ref = "dss" }
+dss-utils-apache-commons = { module = "eu.europa.ec.joinup.sd-dss:dss-utils-apache-commons", version.ref = "dss" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springboot" }

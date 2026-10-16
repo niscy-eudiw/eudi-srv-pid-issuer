@@ -584,12 +584,13 @@ internal fun validateProof(
     isTrustedIssuer: IsTrustedIssuer,
     verifyNonce: VerifyNonce,
     getStatusListTokenStatus: GetStatusListTokenStatus,
+    signatureVerifier: SignatureVerifier,
 ): ValidateProof {
     val verifyKeyAttestation =
         VerifyKeyAttestation(
             isTrustedIssuer = isTrustedIssuer,
             getStatusListTokenStatus = getStatusListTokenStatus,
-            signatureVerifier = SignatureVerifier.jwsValidator(),
+            signatureVerifier = signatureVerifier,
         )
     val validateJwtProofWithKeyAttestation =
         ValidateJwtProofWithKeyAttestation(credentialIssuerId, verifyKeyAttestation)
@@ -704,5 +705,16 @@ internal fun trustValidatorService(
     } else {
         log.info("Using Trust Validator Service '{}'", trustValidatorServiceUrl)
         IsTrustedIssuer.usingTrustValidatorService(webClient, Url.parse(trustValidatorServiceUrl))
+    }
+}
+
+internal fun signatureVerifier(env: Environment): SignatureVerifier {
+    val jadesBb = env.getBoolean("issuer.keyAttestation.signatureVerifier.jadesBb", default = true)
+    return if (jadesBb) {
+        log.info("Using JAdES B-B (DSS) signature verifier")
+        SignatureVerifier.jadesBBValidator()
+    } else {
+        log.info("Using JWS signature verifier")
+        SignatureVerifier.jwsValidator()
     }
 }
