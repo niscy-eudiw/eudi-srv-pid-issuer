@@ -32,6 +32,7 @@ import com.nimbusds.jose.util.X509CertChainUtils
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
 import eu.europa.ec.eudi.pidissuer.adapter.out.attestation.mdl.mdlV1Cfg
+import eu.europa.ec.eudi.pidissuer.adapter.out.proof.SignatureVerifier
 import eu.europa.ec.eudi.pidissuer.adapter.out.proof.ValidateJwtProofWithKeyAttestation
 import eu.europa.ec.eudi.pidissuer.adapter.out.proof.VerifyKeyAttestation
 import eu.europa.ec.eudi.pidissuer.adapter.out.trust.Ignored
@@ -58,6 +59,7 @@ internal class ValidateJwtProofWithKeyAttestationTest {
         VerifyKeyAttestation(
             isTrustedIssuer = IsTrustedIssuer.Ignored,
             getStatusListTokenStatus = { _, _ -> StatusListTokenStatus.VALID },
+            signatureVerifier = SignatureVerifier.jwsValidator(),
         )
     private val validateJwtProofWithKeyAttestation =
         ValidateJwtProofWithKeyAttestation(

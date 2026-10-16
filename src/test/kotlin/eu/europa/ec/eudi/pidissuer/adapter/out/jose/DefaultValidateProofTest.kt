@@ -23,6 +23,7 @@ import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.ECKey
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator
 import eu.europa.ec.eudi.pidissuer.adapter.out.attestation.pid.pidMsoMdocV1
+import eu.europa.ec.eudi.pidissuer.adapter.out.proof.SignatureVerifier
 import eu.europa.ec.eudi.pidissuer.adapter.out.proof.ValidateAttestationProof
 import eu.europa.ec.eudi.pidissuer.adapter.out.proof.ValidateJwtProofWithKeyAttestation
 import eu.europa.ec.eudi.pidissuer.adapter.out.proof.VerifyKeyAttestation
@@ -50,6 +51,7 @@ class DefaultValidateProofTest {
         VerifyKeyAttestation(
             isTrustedIssuer = IsTrustedIssuer.Ignored,
             getStatusListTokenStatus = validKeyStorageStatus,
+            signatureVerifier = SignatureVerifier.jwsValidator(),
         )
 
     @Test

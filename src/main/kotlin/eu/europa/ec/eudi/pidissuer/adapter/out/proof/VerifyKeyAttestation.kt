@@ -23,19 +23,16 @@ import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.context.raise
 import arrow.core.raise.context.withError
 import arrow.core.toNonEmptyListOrNull
-import com.nimbusds.jose.JOSEObjectType
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.crypto.ECDSASigner
 import com.nimbusds.jose.jwk.AsymmetricJWK
 import com.nimbusds.jose.jwk.ECKey
 import com.nimbusds.jose.jwk.JWK
-import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier
 import com.nimbusds.jose.proc.SecurityContext
-import com.nimbusds.jose.proc.SingleKeyJWSKeySelector
 import com.nimbusds.jose.util.X509CertUtils
 import com.nimbusds.jwt.JWTClaimsSet
+import com.nimbusds.jwt.SignedJWT
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
-import com.nimbusds.jwt.proc.DefaultJWTProcessor
 import eu.europa.ec.eudi.pidissuer.domain.*
 import eu.europa.ec.eudi.pidissuer.port.out.status.GetStatusListTokenStatus
 import eu.europa.ec.eudi.pidissuer.port.out.status.StatusListTokenStatus
@@ -52,6 +49,7 @@ class VerifyKeyAttestation(
     private val maxSkew: Duration = 30.seconds,
     private val isTrustedIssuer: IsTrustedIssuer,
     private val getStatusListTokenStatus: GetStatusListTokenStatus,
+    private val signatureVerifier: SignatureVerifier,
 ) {
     context(_: Raise<String>, proofType: ProofType.Jwt)
     suspend operator fun invoke(
@@ -91,13 +89,16 @@ class VerifyKeyAttestation(
             val nonce = claims.nonce
             val algorithm = extractSupportedAlgorithm(signingAlgorithmsSupported)
             val walletProviderSigningKey = extractSigningKey()
-            val key =
-                walletProviderSigningKey.key
-                    .ensureCompatibleWith(algorithm)
-                    .ensureIsPublicAsymmetricKey()
-            verifySignature(key, algorithm, expectExpirationClaim)
-            ensureMeetsKeyAttestationRequirements(keyAttestationRequirement)
             walletProviderSigningKey.ensureTrustWalletProvider()
+            walletProviderSigningKey.key
+                .ensureCompatibleWith(algorithm)
+                .ensureIsPublicAsymmetricKey()
+
+            verifyClaims(expectExpirationClaim)
+
+            jwt.ensureSignatureIsValid(walletProviderSigningKey.x5c, at)
+
+            ensureMeetsKeyAttestationRequirements(keyAttestationRequirement)
 
             keyAttestation.claims.keyStorageStatus.ensureIsValid()
 
@@ -113,6 +114,17 @@ class VerifyKeyAttestation(
     }
 
     context(_: Raise<String>)
+    private suspend fun SignedJWT.ensureSignatureIsValid(
+        certificate: NonEmptyList<X509Certificate>,
+        at: Instant,
+    ) {
+        val result = signatureVerifier(serialize(), certificate, at)
+        ensure(result is SignatureVerificationResult.Passed) {
+            "Key attestation signature is not valid"
+        }
+    }
+
+    context(_: Raise<String>)
     private fun KeyAttestationJWT.extractSigningKey(): WalletProviderSigningKey {
         val header = jwt.header
         val chain =
@@ -123,33 +135,21 @@ class VerifyKeyAttestation(
         return WalletProviderSigningKey(jwk, chain)
     }
 
-    private fun KeyAttestationJWT.verifySignature(
-        key: AsymmetricJWK,
-        algorithm: JWSAlgorithm,
-        expectExpirationClaim: Boolean,
-    ) {
-        val expectedType = JOSEObjectType(OpenId4VciSpec.KEY_ATTESTATION_JWT_TYPE)
-        val keySelector = SingleKeyJWSKeySelector<SecurityContext>(algorithm, key.toPublicKey())
+    private fun KeyAttestationJWT.verifyClaims(expectExpirationClaim: Boolean) {
         val requiredClaims =
             if (expectExpirationClaim) {
                 setOf("iat", "attested_keys", "exp")
             } else {
                 setOf("iat", "attested_keys")
             }
-        val processor =
-            DefaultJWTProcessor<SecurityContext>()
-                .apply {
-                    jwsTypeVerifier = DefaultJOSEObjectTypeVerifier(expectedType)
-                    jwsKeySelector = keySelector
-                    jwtClaimsSetVerifier =
-                        DefaultJWTClaimsVerifier<SecurityContext?>(
-                            JWTClaimsSet.Builder().build(),
-                            requiredClaims,
-                        ).apply {
-                            maxClockSkew = maxSkew.toInt(DurationUnit.SECONDS)
-                        }
-                }
-        processor.process(jwt, null)
+        val claimsVerifier =
+            DefaultJWTClaimsVerifier<SecurityContext?>(
+                JWTClaimsSet.Builder().build(),
+                requiredClaims,
+            ).apply {
+                maxClockSkew = maxSkew.toInt(DurationUnit.SECONDS)
+            }
+        claimsVerifier.verify(jwt.jwtClaimsSet, null)
     }
 
     context(_: Raise<String>)

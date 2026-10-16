@@ -36,6 +36,7 @@ import eu.europa.ec.eudi.pidissuer.adapter.out.jose.AccessCertificate
 import eu.europa.ec.eudi.pidissuer.adapter.out.jose.supportedEncryptionMethods
 import eu.europa.ec.eudi.pidissuer.adapter.out.jose.supportedJWEAlgorithms
 import eu.europa.ec.eudi.pidissuer.adapter.out.nonce.NonceEncryptionKey
+import eu.europa.ec.eudi.pidissuer.adapter.out.proof.SignatureVerifier
 import eu.europa.ec.eudi.pidissuer.adapter.out.proof.ValidateAttestationProof
 import eu.europa.ec.eudi.pidissuer.adapter.out.proof.ValidateJwtProofWithKeyAttestation
 import eu.europa.ec.eudi.pidissuer.adapter.out.proof.VerifyKeyAttestation
@@ -588,6 +589,7 @@ internal fun validateProof(
         VerifyKeyAttestation(
             isTrustedIssuer = isTrustedIssuer,
             getStatusListTokenStatus = getStatusListTokenStatus,
+            signatureVerifier = SignatureVerifier.jwsValidator(),
         )
     val validateJwtProofWithKeyAttestation =
         ValidateJwtProofWithKeyAttestation(credentialIssuerId, verifyKeyAttestation)

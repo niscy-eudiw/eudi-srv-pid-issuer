@@ -92,6 +92,10 @@ dependencies {
         because("R2DBC driver for PostgreSQL")
     }
 
+    implementation(libs.dss.policy.jaxb)
+    implementation(libs.dss.jades)
+    implementation(libs.dss.validation)
+
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation("org.springframework.boot:spring-boot-starter-test")
