@@ -20,7 +20,6 @@ import com.eygraber.uri.toURI
 import com.nimbusds.jose.JOSEObjectType
 import com.nimbusds.jose.crypto.ECDSASigner
 import com.nimbusds.jose.util.Base64
-import com.nimbusds.jose.util.Base64URL
 import com.nimbusds.jose.util.X509CertUtils
 import com.nimbusds.jwt.SignedJWT
 import eu.europa.ec.eudi.pidissuer.adapter.out.IssuerSigningKey
@@ -42,7 +41,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import org.slf4j.LoggerFactory
-import java.net.URI
+import kotlin.time.Instant
 
 enum class SdJwtVcSerialization {
     Compact,
@@ -103,11 +102,14 @@ private class EncodeAttestationAttributesInSdJwtVc<in Attr>(
                 }
                 build(attributes)
             }
-        return enode(spec)
+        return enode(spec, issuedAt)
     }
 
-    private suspend fun enode(spec: SdJwtObject): JsonElement =
-        context(issuerSigningKey, digestsHashAlgorithm, sdJwtVcSerialization, NimbusSdJwtOps, x5u) {
+    private suspend fun enode(
+        spec: SdJwtObject,
+        issuedAt: Instant,
+    ): JsonElement =
+        context(issuerSigningKey, digestsHashAlgorithm, sdJwtVcSerialization, NimbusSdJwtOps, x5u, issuedAt) {
             val issuer = sdJwtVcIssuer(digestsHashAlgorithm)
             val sdJwt = issuer.issue(spec).getOrThrow().also { it.logDebug() }
             when (sdJwtVcSerialization) {
@@ -117,7 +119,7 @@ private class EncodeAttestationAttributesInSdJwtVc<in Attr>(
         }
 }
 
-context(issuerSigningKey: IssuerSigningKey, x5u: Url)
+context(issuerSigningKey: IssuerSigningKey, x5u: Url, issuedAt: Instant)
 private fun sdJwtVcIssuer(digestsHashAlgorithm: HashAlgorithm): SdJwtIssuer<SignedJWT> {
     val factory = SdJwtFactory(digestsHashAlgorithm)
     val signer = ECDSASigner(issuerSigningKey.key)
@@ -134,6 +136,7 @@ private fun sdJwtVcIssuer(digestsHashAlgorithm: HashAlgorithm): SdJwtIssuer<Sign
         x509CertChain(x5c)
         x509CertURL(x5u.toURI())
         x509CertSHA256Thumbprint(certificateThumbprint)
+        customParam("iat", issuedAt.epochSeconds)
     }
 }
 
