@@ -102,10 +102,10 @@ private class EncodeAttestationAttributesInSdJwtVc<in Attr>(
                 }
                 build(attributes)
             }
-        return enode(spec, issuedAt)
+        return encode(spec, issuedAt)
     }
 
-    private suspend fun enode(
+    private suspend fun encode(
         spec: SdJwtObject,
         issuedAt: Instant,
     ): JsonElement =
